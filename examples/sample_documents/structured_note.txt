@@ -1,0 +1,47 @@
+Technical Advisory — ADV-2024-0187
+Severity: High
+Category: Infrastructure / Database
+Affects: PostgreSQL 14.x — 15.x on Linux deployments
+
+Overview:
+A performance regression has been identified in PostgreSQL versions 14.0 through 15.3
+when running workloads with a high rate of concurrent index scans on partitioned tables.
+Queries that previously executed in under 50 ms may take 2–10 seconds under load.
+
+Background:
+Partitioned tables using range or list partitioning with more than 256 child tables are
+disproportionately affected. The regression was introduced in the query planner when
+optimising partition pruning for parallel query workers.
+
+Description:
+Under sustained concurrent load (> 200 simultaneous connections performing index scans),
+the planner re-evaluates partition pruning for each worker independently rather than
+caching the pruning result. This results in O(n * partitions) planning work instead of
+the expected O(n) behaviour.
+
+Symptoms include:
+- pg_stat_activity showing many queries in "planning" state
+- autovacuum falling behind on partition tables
+- Spike in CPU utilisation on the database server without proportional query volume
+
+Findings:
+Root cause confirmed via kernel profiling: lock contention in the planner's partition
+cache invalidation path. The cache is per-session and not shared between parallel workers.
+
+Patch availability: Fix is included in PostgreSQL 15.4 and 14.9 (released 2024-08-08).
+
+Recommendations:
+1. Upgrade to PostgreSQL 15.4 or 14.9 immediately if running affected versions.
+2. If upgrade is not immediately possible:
+   - Set max_parallel_workers_per_gather = 0 to disable parallel query (performance
+     regression but avoids the planner contention)
+   - Reduce the number of partitions to below 64 where feasible
+   - Increase work_mem to 256MB to reduce index scan frequency
+3. After upgrading, monitor pg_stat_activity for any residual "planning" state anomalies.
+4. Review autovacuum schedules on all partitioned tables and run ANALYZE manually post-upgrade.
+
+References:
+- PostgreSQL Bug Report #18213: https://www.postgresql.org/message-id/18213
+- Patch commit: abc1234def5678 (PostgreSQL git repository)
+- Related advisory ADV-2024-0165 (prior partitioning issue in v13)
+- Upstream release notes: https://www.postgresql.org/docs/release/15.4

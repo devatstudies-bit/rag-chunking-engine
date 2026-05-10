@@ -1,0 +1,41 @@
+Sprint Review Meeting — Engineering Team
+Date: 2024-09-15
+Participants: Alice (PM), Bob (Backend), Carol (DevOps), Dave (Frontend)
+
+00:00:05 Alice: Good morning everyone. Let's kick off the sprint review. Bob, can you start with the backend work?
+
+00:00:18 Bob: Sure. We shipped the new authentication service this sprint. It supports OAuth 2.0, API key auth, and short-lived JWT tokens. The token refresh logic took longer than expected — we had edge cases with concurrent refresh requests that caused duplicate tokens.
+
+00:01:10 Alice: How did you resolve the concurrency issue?
+
+00:01:22 Bob: We added a distributed lock using Redis. Any refresh request holds the lock for 200 milliseconds — long enough to complete, short enough not to impact throughput. Latency for auth calls is now under 8 milliseconds at the 99th percentile.
+
+00:02:05 Alice: Excellent. Carol, what about the deployment pipeline?
+
+00:02:15 Carol: Big wins here. We reduced total CI build time from 22 minutes to 13 minutes by parallelising the integration test stages. We also introduced dependency caching in the Docker build layer — that alone saved 4 minutes per run.
+
+00:03:30 Alice: Did anything break when you changed the pipeline?
+
+00:03:42 Carol: One issue — the end-to-end tests were not properly isolated and were sharing state between runs. We fixed that by spinning up a fresh database container for each test suite. It adds 90 seconds but ensures clean state.
+
+00:04:55 Dave: From the frontend side, we completed the redesign of the dashboard charts. We switched from Chart.js to Recharts because Recharts has better TypeScript support and the bundle size is 40% smaller.
+
+00:05:40 Alice: Any accessibility concerns with the new charts?
+
+00:05:50 Dave: Yes, actually. We added ARIA labels to every chart element and keyboard navigation for the data table fallback. We ran it through axe DevTools and it now scores 98 out of 100.
+
+00:07:00 Alice: Let's talk about the next sprint. What are our priorities?
+
+00:07:15 Bob: The search feature is the biggest ask from customers. We need full-text search with filters across the document store.
+
+00:07:45 Carol: Infrastructure-wise, I want to set up the staging environment to mirror production more closely. Right now staging is missing the message queue and that causes false-positive integration failures.
+
+00:08:20 Dave: On the frontend we need to tackle the mobile responsiveness issues. Currently the dashboard breaks on screens narrower than 768 pixels.
+
+00:09:00 Alice: Agreed on all three. Bob, search is P1. Carol, staging parity is P2. Dave, mobile responsiveness is P2 as well. Let's aim to have search in review by Thursday. Any blockers?
+
+00:09:30 Bob: We need the indexing infrastructure in place before we can start on search. Carol, can we get Elasticsearch deployed to staging by Monday?
+
+00:09:45 Carol: I can have it ready by end of day Monday. I'll share the connection details in Slack once it's up.
+
+00:10:00 Alice: Perfect. Let's wrap up. Good sprint everyone — auth shipped, CI is faster, dashboard looks great.
