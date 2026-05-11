@@ -16,22 +16,14 @@ This engine automatically selects the optimal strategy for each document and orc
 ## Architecture Overview
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1a1a2e',
-  'primaryTextColor': '#e0e0ff',
-  'primaryBorderColor': '#4a4af4',
-  'lineColor': '#7070ff',
-  'secondaryColor': '#16213e',
-  'tertiaryColor': '#0f3460'
-}}}%%
 graph TB
-    classDef input      fill:#1565C0,stroke:#90CAF9,stroke-width:2px,color:#fff
-    classDef ingestion  fill:#1B5E20,stroke:#A5D6A7,stroke-width:2px,color:#fff
-    classDef chunker    fill:#4A148C,stroke:#CE93D8,stroke-width:2px,color:#fff
-    classDef provider   fill:#E65100,stroke:#FFCC02,stroke-width:2px,color:#fff
-    classDef vector     fill:#006064,stroke:#80DEEA,stroke-width:2px,color:#fff
-    classDef retrieval  fill:#880E4F,stroke:#F48FB1,stroke-width:2px,color:#fff
-    classDef api        fill:#33691E,stroke:#DCEDC8,stroke-width:2px,color:#fff
+    classDef input     fill:#1565C0,stroke:#90CAF9,stroke-width:2px,color:#fff
+    classDef ingestion fill:#1B5E20,stroke:#A5D6A7,stroke-width:2px,color:#fff
+    classDef chunker   fill:#4A148C,stroke:#CE93D8,stroke-width:2px,color:#fff
+    classDef provider  fill:#E65100,stroke:#FFCC02,stroke-width:2px,color:#fff
+    classDef vector    fill:#006064,stroke:#80DEEA,stroke-width:2px,color:#fff
+    classDef retrieval fill:#880E4F,stroke:#F48FB1,stroke-width:2px,color:#fff
+    classDef api       fill:#33691E,stroke:#DCEDC8,stroke-width:2px,color:#fff
 
     subgraph INPUT["📄 Document Input Layer"]
         D1[Structured Document]:::input
@@ -43,33 +35,33 @@ graph TB
         D7[Heterogeneous]:::input
     end
 
-    subgraph INGESTION["⚙️  LangGraph Ingestion Pipeline"]
+    subgraph INGESTION["⚙️ LangGraph Ingestion Pipeline"]
         N1["🔍 Classify Document"]:::ingestion
         N2["📋 Select Strategy"]:::ingestion
-        N3["✂️  Execute Chunker"]:::ingestion
+        N3["✂️ Execute Chunker"]:::ingestion
         N4["🔢 Generate Embeddings"]:::ingestion
         N5["💾 Index to Milvus"]:::ingestion
         N1 --> N2 --> N3 --> N4 --> N5
     end
 
     subgraph CHUNKERS["🧠 Chunking Strategy Engine"]
-        C1["1️⃣  Fixed Size\n(benchmark only)"]:::chunker
-        C2["2️⃣  Recursive Character\n(general text)"]:::chunker
-        C3["3️⃣  Document-Aware\n(structured docs)"]:::chunker
-        C4["4️⃣  Semantic\n(transcripts)"]:::chunker
-        C5["5️⃣  Code-Aware\n(source files)"]:::chunker
-        C6["6️⃣  Row-Aware\n(CSV/tables)"]:::chunker
-        C7["7️⃣  Sliding Window\n(technical docs)"]:::chunker
-        C8["8️⃣  Agentic\n(complex mixed)"]:::chunker
+        C1["1️⃣ Fixed Size"]:::chunker
+        C2["2️⃣ Recursive Character"]:::chunker
+        C3["3️⃣ Document-Aware"]:::chunker
+        C4["4️⃣ Semantic"]:::chunker
+        C5["5️⃣ Code-Aware"]:::chunker
+        C6["6️⃣ Row-Aware"]:::chunker
+        C7["7️⃣ Sliding Window"]:::chunker
+        C8["8️⃣ Agentic"]:::chunker
     end
 
-    subgraph PROVIDERS["☁️  LLM Providers (plug-and-play)"]
-        P1["🟠 AWS Bedrock\nClaude 3.5 Sonnet\nTitan Embed v2"]:::provider
-        P2["🔵 Azure OpenAI\nGPT-4o\ntext-embedding-3-large"]:::provider
+    subgraph PROVIDERS["☁️ LLM Providers"]
+        P1["🟠 AWS Bedrock"]:::provider
+        P2["🔵 Azure OpenAI"]:::provider
     end
 
-    subgraph VECTOR["🗄️  Vector Database"]
-        M1["⚡ Milvus\nHNSW Index\nCosine Similarity"]:::vector
+    subgraph VECTOR["🗄️ Vector Database"]
+        M1["⚡ Milvus — HNSW / Cosine"]:::vector
     end
 
     subgraph RETRIEVAL["🔎 LangGraph Retrieval Pipeline"]
@@ -81,7 +73,7 @@ graph TB
         R1 --> R2 --> R3 --> R4 --> R5
     end
 
-    subgraph API["🌐 REST API (FastAPI)"]
+    subgraph API["🌐 REST API"]
         A1["POST /api/v1/ingest"]:::api
         A2["POST /api/v1/query"]:::api
         A3["GET  /health"]:::api
@@ -95,8 +87,8 @@ graph TB
     R3 --> M1
     R2 --> P1 & P2
     R5 --> P1 & P2
-    A1 --> INGESTION
-    A2 --> RETRIEVAL
+    A1 --> N1
+    A2 --> R1
 ```
 
 ---
@@ -104,30 +96,29 @@ graph TB
 ## Strategy Selection Decision Tree
 
 ```mermaid
-%%{init: {'theme': 'default'}}%%
 flowchart TD
-    classDef start      fill:#1565C0,stroke:#1565C0,color:#fff,rx:8
-    classDef decision   fill:#F57F17,stroke:#E65100,color:#fff
-    classDef strategy   fill:#1B5E20,stroke:#2E7D32,color:#fff,rx:4
-    classDef warning    fill:#B71C1C,stroke:#C62828,color:#fff,rx:4
+    classDef start    fill:#1565C0,stroke:#1565C0,color:#fff
+    classDef decision fill:#F57F17,stroke:#E65100,color:#fff
+    classDef strategy fill:#1B5E20,stroke:#2E7D32,color:#fff
+    classDef warning  fill:#B71C1C,stroke:#C62828,color:#fff
 
     START([🚀 Document Arrives]):::start
-    Q1{Is it CSV\nor tabular?}:::decision
-    Q2{Is it\nsource code?}:::decision
-    Q3{Does it have\nknown section headers?}:::decision
-    Q4{Is it\nconversational\nor a transcript?}:::decision
-    Q5{Is it dense\ntechnical prose with\ncross-references?}:::decision
-    Q6{Is it a mix\nof prose + tables\n+ code blocks?}:::decision
-    Q7{Is it for\na benchmark\nor prototype?}:::decision
+    Q1{Is it CSV or tabular?}:::decision
+    Q2{Is it source code?}:::decision
+    Q3{Has known section headers?}:::decision
+    Q4{Conversational or transcript?}:::decision
+    Q5{Dense technical prose?}:::decision
+    Q6{Mixed prose + tables + code?}:::decision
+    Q7{Benchmark or prototype only?}:::decision
 
-    S1["6️⃣  Row-Aware Chunker\n─────────────────\n• 1 row = 1 chunk\n• Headers in every chunk\n• Column values in metadata\n• Enables precise filtering"]:::strategy
-    S2["5️⃣  Code-Aware Chunker\n─────────────────\n• Splits at function/class boundaries\n• Never cuts mid-function\n• Language-specific (Python, JS, Go…)\n• Unit name in metadata"]:::strategy
-    S3["3️⃣  Document-Aware Chunker\n─────────────────\n• Reads document's own structure\n• 1 section = 1 chunk\n• Header prepended to every chunk\n• Section name in metadata"]:::strategy
-    S4["4️⃣  Semantic Chunker\n─────────────────\n• Embeds every sentence\n• Splits at similarity drops\n• Topic-coherent chunks\n• No fixed size limit"]:::strategy
-    S5["7️⃣  Sliding Window Chunker\n─────────────────\n• Fixed size + configurable overlap\n• Concepts at boundaries preserved\n• Built-in deduplication helper\n• 20% overlap rule of thumb"]:::strategy
-    S6["8️⃣  Agentic Chunker\n─────────────────\n• LLM reads full document\n• Proposes optimal boundaries\n• Handles any mix of content\n• 1 LLM call per document"]:::strategy
-    S7["2️⃣  Recursive Character Chunker\n─────────────────\n• Hierarchy: ¶ → line → . → space\n• Sentence/paragraph integrity\n• No structural knowledge needed\n• Best general-purpose fallback"]:::strategy
-    S8["1️⃣  Fixed Size Chunker\n─────────────────\n⚠ NEVER in production ⚠\n• No structural awareness\n• Splits mid-sentence\n• Benchmark baseline only"]:::warning
+    S1["6️⃣ Row-Aware Chunker<br/>1 row = 1 chunk<br/>Headers in every chunk<br/>Column values in metadata"]:::strategy
+    S2["5️⃣ Code-Aware Chunker<br/>Splits at function/class boundaries<br/>Never cuts mid-function<br/>Multi-language support"]:::strategy
+    S3["3️⃣ Document-Aware Chunker<br/>1 section = 1 chunk<br/>Header prepended to every chunk<br/>Section name in metadata"]:::strategy
+    S4["4️⃣ Semantic Chunker<br/>Embeds every sentence<br/>Splits at similarity drops<br/>Topic-coherent chunks"]:::strategy
+    S5["7️⃣ Sliding Window Chunker<br/>Fixed size + configurable overlap<br/>Boundary concepts preserved<br/>20% overlap rule of thumb"]:::strategy
+    S6["8️⃣ Agentic Chunker<br/>LLM reads full document<br/>Proposes optimal boundaries<br/>1 LLM call per document"]:::strategy
+    S7["2️⃣ Recursive Character Chunker<br/>Hierarchy: para → line → sentence<br/>Sentence/paragraph integrity<br/>Best general-purpose fallback"]:::strategy
+    S8["1️⃣ Fixed Size Chunker<br/>⚠️ NEVER in production<br/>No structural awareness<br/>Benchmark baseline only"]:::warning
 
     START --> Q1
     Q1 -->|Yes| S1
@@ -151,31 +142,23 @@ flowchart TD
 ## Ingestion Pipeline (LangGraph)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#0D47A1'}}}%%
-stateDiagram-v2
-    direction LR
-    classDef node  fill:#1565C0,stroke:#90CAF9,color:#fff
-    classDef ok    fill:#1B5E20,stroke:#A5D6A7,color:#fff
-    classDef error fill:#B71C1C,stroke:#EF9A9A,color:#fff
-    classDef end   fill:#4A148C,stroke:#CE93D8,color:#fff
+flowchart LR
+    classDef step  fill:#1565C0,stroke:#90CAF9,stroke-width:2px,color:#fff
+    classDef ok    fill:#1B5E20,stroke:#A5D6A7,stroke-width:2px,color:#fff
+    classDef error fill:#B71C1C,stroke:#EF9A9A,stroke-width:2px,color:#fff
 
-    [*] --> Classify: 📄 raw document text
-    Classify: 🔍 Classify Document\n──────────────────\nHeuristic detection:\nCSV signals → tabular_data\nCode keywords → source_code\nSection headers → structured_document\nTimestamps/speakers → transcript\nDefault → general_text
-    Classify --> SelectStrategy: doc_type detected
+    IN([📄 Raw Document]):::ok
+    C["🔍 Classify<br/>Heuristic detection:<br/>CSV → tabular_data<br/>Code → source_code<br/>Headers → structured_document<br/>Speakers → transcript"]:::step
+    S["📋 Select Strategy<br/>Registry lookup:<br/>doc_type → ChunkingStrategy<br/>Instantiate chunker"]:::step
+    CH["✂️ Execute Chunker<br/>Runs selected strategy<br/>Returns list of Documents<br/>with strategy metadata"]:::step
+    I["💾 Index to Milvus<br/>Batch embed 128 docs<br/>Delete prior version<br/>Insert with HNSW index"]:::step
+    OK([✅ indexed_count]):::ok
+    ERR([❌ error list]):::error
 
-    SelectStrategy: 📋 Select Strategy\n──────────────────\nRegistry lookup:\ndoc_type → ChunkingStrategy\nBuilds configured chunker instance
-
-    SelectStrategy --> Chunk: strategy chosen
-
-    Chunk: ✂️  Execute Chunker\n──────────────────\nRuns selected strategy\nProduces list[Document]\nwith strategy metadata
-
-    Chunk --> Index: chunks ready
-    Chunk --> Error: exception raised
-
-    Index: 💾 Index to Milvus\n──────────────────\nBatch embed (128 docs)\nDelete previous version\nInsert with HNSW index
-
-    Index --> [*]: ✅ indexed_count returned
-    Error --> [*]: ❌ error list returned
+    IN --> C --> S --> CH
+    CH -->|chunks ready| I
+    CH -->|exception| ERR
+    I --> OK
 ```
 
 ---
@@ -183,28 +166,23 @@ stateDiagram-v2
 ## Retrieval Pipeline (LangGraph)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#880E4F'}}}%%
-stateDiagram-v2
-    direction LR
+flowchart LR
+    classDef step  fill:#880E4F,stroke:#F48FB1,stroke-width:2px,color:#fff
+    classDef ok    fill:#1B5E20,stroke:#A5D6A7,stroke-width:2px,color:#fff
+    classDef error fill:#B71C1C,stroke:#EF9A9A,stroke-width:2px,color:#fff
 
-    [*] --> EmbedQuery: 🔎 user query
-    EmbedQuery: 🔢 Embed Query\n──────────────────\nProvider: Bedrock or Azure\nProduces float[1536] vector
+    IN([🔎 User Query]):::ok
+    E["🔢 Embed Query<br/>Provider: Bedrock or Azure<br/>float[1536] vector"]:::step
+    SE["🔍 ANN Search<br/>Cosine similarity HNSW<br/>Optional metadata filter<br/>Returns top-k hits"]:::step
+    R["📊 Rerank Results<br/>Score-based sort<br/>Plug in cross-encoder<br/>for production"]:::step
+    G["💬 Generate Answer<br/>Context + question → LLM<br/>Bedrock or Azure<br/>Answer + cited sources"]:::step
+    OK([✅ Answer + Sources]):::ok
+    ERR([❌ Error]):::error
 
-    EmbedQuery --> Search: query vector ready
-
-    Search: 🔍 ANN Search\n──────────────────\nCosine similarity (HNSW)\nOptional metadata filter\nReturns top-k candidates
-
-    Search --> Rerank: results found
-    Search --> Error: Milvus unreachable
-
-    Rerank: 📊 Rerank Results\n──────────────────\nScore-based sort\n(plug in cross-encoder\nfor production upgrade)
-
-    Rerank --> Generate: ranked context assembled
-
-    Generate: 💬 Generate Answer\n──────────────────\nSystem: "answer from context only"\nHuman: context + question\nLLM: Bedrock or Azure\nReturns answer + sources
-
-    Generate --> [*]: ✅ answer + cited sources
-    Error --> [*]: ❌ error message
+    IN --> E --> SE
+    SE -->|results found| R
+    SE -->|Milvus unreachable| ERR
+    R --> G --> OK
 ```
 
 ---
@@ -212,7 +190,6 @@ stateDiagram-v2
 ## Strategy Comparison Matrix
 
 ```mermaid
-%%{init: {'theme': 'default'}}%%
 quadrantChart
     title Chunking Strategy Trade-offs
     x-axis Low Structural Awareness --> High Structural Awareness
@@ -221,7 +198,6 @@ quadrantChart
     quadrant-2 High-fidelity, affordable
     quadrant-3 Fast but imprecise
     quadrant-4 Structured and cheap
-
     Fixed Size: [0.05, 0.05]
     Recursive Character: [0.25, 0.10]
     Sliding Window: [0.20, 0.15]
@@ -239,8 +215,8 @@ quadrantChart
 ### 1. Clone and setup
 
 ```bash
-git clone https://github.com/your-org/chunking-engine
-cd chunking-engine
+git clone https://github.com/devatstudies-bit/rag-chunking-engine
+cd rag-chunking-engine
 bash setup.sh
 source .venv/bin/activate
 ```
@@ -323,17 +299,12 @@ curl -X POST http://localhost:8000/api/v1/query \
 
 ## Provider Switching
 
-Switch between AWS Bedrock and Azure OpenAI with a single environment variable:
+Switch between AWS Bedrock and Azure OpenAI with a single environment variable — no code changes required:
 
 ```bash
-# Use Azure OpenAI (default)
-LLM_PROVIDER=azure_openai
-
-# Use AWS Bedrock
+LLM_PROVIDER=azure_openai   # default
 LLM_PROVIDER=bedrock
 ```
-
-No code changes required. Both providers implement the same `LLMProvider` interface.
 
 | Capability | Azure OpenAI | AWS Bedrock |
 |---|---|---|
@@ -361,7 +332,7 @@ No code changes required. Both providers implement the same `LLMProvider` interf
 ## Project Structure
 
 ```
-chunking-engine/
+rag-chunking-engine/
 ├── src/chunking_engine/
 │   ├── config/           # Pydantic settings, structured logging
 │   ├── models/           # LLM provider abstraction (Bedrock + Azure OpenAI)
